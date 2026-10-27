@@ -1,4 +1,5 @@
 # OntoWrite
+![Thumbnail](./public/assets/thumbnail.png)
 
 **A semantic ontology layer on top of Appwrite.** Define concepts, describe their properties, model relationships between classes, and explore entity connections as a knowledge graph. Appwrite stores the ontology model and semantic assertions; OntoWrite provides a UI and API for working with that model.
 
