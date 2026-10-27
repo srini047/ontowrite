@@ -1,5 +1,5 @@
 import "server-only";
-import { createCipheriv, randomBytes } from "node:crypto";
+import { createCipheriv, randomBytes, createDecipheriv } from "node:crypto";
 
 function getEncryptionKey(): Buffer {
   const encoded = process.env.APPWRITE_OAUTH_TOKEN_ENCRYPTION_KEY;
@@ -33,4 +33,25 @@ export function encryptOAuthToken(token: string): string {
     tag.toString("base64"),
     encrypted.toString("base64"),
   ].join(".");
+}
+
+export function decryptOAuthToken(value: string): string {
+  const [ivEncoded, tagEncoded, encryptedEncoded] = value.split(".");
+
+  if (!ivEncoded || !tagEncoded || !encryptedEncoded) {
+    throw new Error("Invalid encrypted token format.");
+  }
+
+  const decipher = createDecipheriv(
+    "aes-256-gcm",
+    getEncryptionKey(),
+    Buffer.from(ivEncoded, "base64"),
+  );
+
+  decipher.setAuthTag(Buffer.from(tagEncoded, "base64"));
+
+  return Buffer.concat([
+    decipher.update(Buffer.from(encryptedEncoded, "base64")),
+    decipher.final(),
+  ]).toString("utf8");
 }

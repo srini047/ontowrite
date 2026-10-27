@@ -69,32 +69,32 @@ function EntityCardNode({ data, selected }: NodeProps<EntityNode>) {
     <div
       className={`relative flex h-[96px] w-[240px] flex-col justify-center overflow-hidden rounded-xl border px-4 py-3 shadow-xl transition ${
         selected
-          ? "border-lime-300 shadow-lg shadow-lime-400/10"
-          : "border-slate-700 bg-[#171c25]"
+          ? "border-ow-accent bg-ow-accent/20 shadow-lg shadow-[var(--ow-accent-soft)]"
+          : "border-ow-border bg-ow-raised"
       }`}
     >
       <Handle
         type="target"
         position={vertical ? Position.Top : Position.Left}
-        className="!h-3 !w-3 !border-2 !border-[#171c25] !bg-lime-400"
+        className="!h-3 !w-3 !border-2 !border-ow-raised !bg-ow-accent"
       />
 
-      <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-lime-400">
+      <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-ow-accent">
         {data.entityType}
       </p>
 
-      <p className="truncate text-sm font-semibold text-slate-100">
+      <p className="truncate text-sm font-semibold text-ow-text">
         {data.label}
       </p>
 
-      <p className="mt-1 truncate font-mono text-[10px] text-slate-500">
+      <p className="mt-1 truncate font-mono text-[10px] text-ow-subtle">
         {data.ref}
       </p>
 
       <Handle
         type="source"
         position={vertical ? Position.Bottom : Position.Right}
-        className="!h-3 !w-3 !border-2 !border-[#171c25] !bg-lime-400"
+        className="!h-3 !w-3 !border-2 !border-ow-raised !bg-ow-accent"
       />
     </div>
   );
@@ -197,19 +197,19 @@ function buildGraph(
       label: predicate,
       markerEnd: {
         type: MarkerType.ArrowClosed,
-        color: "#a3e635",
+        color: "var(--ow-accent)",
       },
       style: {
-        stroke: "#a3e635",
+        stroke: "var(--ow-accent)",
         strokeWidth: 1.8,
       },
       labelStyle: {
-        fill: "#d9f99d",
+        fill: "var(--ow-accent-hover)",
         fontSize: 12,
         fontWeight: 600,
       },
       labelBgStyle: {
-        fill: "#11151d",
+        fill: "var(--ow-surface)",
         fillOpacity: 0.95,
       },
     });
@@ -444,9 +444,21 @@ export default function GraphPage() {
 
       const node = nodes.find((item) => item.id === id);
 
-      if (!node) return;
+      if (!node) {
+        setSelectedNode(null);
+        setNodes((currentNodes) =>
+          currentNodes.map((item) => ({ ...item, selected: false })),
+        );
+        return;
+      }
 
       setSelectedNode(node);
+      setNodes((currentNodes) =>
+        currentNodes.map((item) => ({
+          ...item,
+          selected: item.id === id,
+        })),
+      );
 
       void flowInstanceRef.current?.fitView({
         nodes: [{ id }],
@@ -455,7 +467,7 @@ export default function GraphPage() {
         maxZoom: 1.2,
       });
     },
-    [nodes],
+    [nodes, setNodes],
   );
 
   const fitGraph = useCallback(() => {
@@ -471,12 +483,12 @@ export default function GraphPage() {
   }, [loadData]);
 
   return (
-    <main className="min-h-screen min-w-0 bg-[#0b0d10] px-3 py-5 text-slate-100 sm:px-6 sm:py-7 lg:px-8">
+    <main className="min-h-screen min-w-0 bg-ow-bg px-3 py-5 text-ow-text sm:px-6 sm:py-7 lg:px-8">
       <div className="mx-auto max-w-[1800px]">
         {/* Page heading and controls */}
         <section className="mb-6 flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div className="min-w-0">
-            <p className="text-xs font-bold uppercase tracking-[0.25em] text-lime-400">
+            <p className="text-xs font-bold uppercase tracking-[0.25em] text-ow-accent">
               Ontology visualization
             </p>
 
@@ -484,7 +496,7 @@ export default function GraphPage() {
               Knowledge graph
             </h1>
 
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-ow-muted">
               Explore entities, inspect their semantic relationships, and
               navigate your Appwrite knowledge model.
             </p>
@@ -495,7 +507,7 @@ export default function GraphPage() {
               aria-label="Find an entity"
               value={focusId}
               onChange={(event) => focusEntity(event.target.value)}
-              className="min-w-0 rounded-lg border border-white/10 bg-[#11151d] px-3 py-2.5 text-sm text-slate-200 outline-none focus:border-lime-400 sm:w-64"
+              className="min-w-0 rounded-lg border border-ow-border bg-ow-surface px-3 py-2.5 text-sm text-ow-text outline-none focus:border-ow-accent sm:w-64"
             >
               <option value="">Find an entity...</option>
               {nodes.map((node) => (
@@ -509,7 +521,7 @@ export default function GraphPage() {
               type="button"
               onClick={() => void refreshGraph()}
               disabled={loading}
-              className="rounded-lg bg-lime-400 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-lg bg-ow-accent px-4 py-2.5 text-sm font-semibold text-[var(--ow-accent-contrast)] transition hover:bg-ow-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? "Refreshing..." : "Refresh"}
             </button>
@@ -518,9 +530,9 @@ export default function GraphPage() {
 
         {/* Ontology summary */}
         {ontology && (
-          <section className="mb-5 flex flex-col gap-4 rounded-xl border border-white/10 bg-[#11151d] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <section className="mb-5 flex flex-col gap-4 rounded-xl border border-ow-border bg-ow-surface px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <div className="min-w-0">
-              <p className="text-xs font-bold tracking-widest text-slate-500">
+              <p className="text-xs font-bold tracking-widest text-ow-subtle">
                 ACTIVE ONTOLOGY
               </p>
 
@@ -528,28 +540,28 @@ export default function GraphPage() {
                 {field(ontology, "name")}
               </h2>
 
-              <p className="mt-1 break-all text-xs text-slate-500">
+              <p className="mt-1 break-all text-xs text-ow-subtle">
                 {field(ontology, "namespace")}
               </p>
             </div>
 
             <div className="grid grid-cols-3 gap-5 sm:gap-8">
               <div>
-                <p className="text-xs text-slate-500">Entities</p>
+                <p className="text-xs text-ow-subtle">Entities</p>
                 <p className="mt-1 text-2xl font-semibold tabular-nums">
                   {nodes.length}
                 </p>
               </div>
 
               <div>
-                <p className="text-xs text-slate-500">Connections</p>
+                <p className="text-xs text-ow-subtle">Connections</p>
                 <p className="mt-1 text-2xl font-semibold tabular-nums">
                   {edges.length}
                 </p>
               </div>
 
               <div>
-                <p className="text-xs text-slate-500">Classes</p>
+                <p className="text-xs text-ow-subtle">Classes</p>
                 <p className="mt-1 text-2xl font-semibold tabular-nums">
                   {data?.classes.length ?? 0}
                 </p>
@@ -562,7 +574,7 @@ export default function GraphPage() {
         {error && (
           <div
             role="alert"
-            className="mb-5 flex flex-col gap-3 rounded-xl border border-red-400/20 bg-red-400/5 p-4 text-sm text-red-300 sm:flex-row sm:items-center sm:justify-between"
+            className="mb-5 flex flex-col gap-3 rounded-xl border border-[var(--ow-danger)]/20 bg-[var(--ow-danger-bg)] p-4 text-sm text-[var(--ow-danger)] sm:flex-row sm:items-center sm:justify-between"
           >
             <p>{error}</p>
 
@@ -578,17 +590,17 @@ export default function GraphPage() {
 
         {/* Main graph and entity inspector */}
         <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
-          <section className="min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-[#10141c]">
-            <div className="flex flex-col gap-3 border-b border-white/10 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <section className="min-w-0 overflow-hidden rounded-2xl border border-ow-border bg-ow-surface">
+            <div className="flex flex-col gap-3 border-b border-ow-border px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
               <div>
                 <h2 className="font-semibold">Entity connections</h2>
-                <p className="mt-1 text-xs leading-5 text-slate-500">
+                <p className="mt-1 text-xs leading-5 text-ow-subtle">
                   Drag nodes · Scroll to zoom · Select a node to inspect it
                 </p>
               </div>
 
-              <div className="flex items-center gap-2 text-xs text-slate-400">
-                <span className="h-2 w-2 rounded-full bg-lime-400" />
+              <div className="flex items-center gap-2 text-xs text-ow-muted">
+                <span className="h-2 w-2 rounded-full bg-ow-accent" />
                 Declared ontology relationships
               </div>
             </div>
@@ -611,6 +623,9 @@ export default function GraphPage() {
                 onPaneClick={() => {
                   setSelectedNode(null);
                   setFocusId("");
+                  setNodes((currentNodes) =>
+                    currentNodes.map((node) => ({ ...node, selected: false })),
+                  );
                 }}
                 fitView
                 fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
@@ -627,29 +642,31 @@ export default function GraphPage() {
                   variant={BackgroundVariant.Dots}
                   gap={22}
                   size={1}
-                  color="#303746"
+                  color="var(--ow-border-subtle)"
                 />
 
                 <Controls
                   showInteractive={false}
-                  className="!overflow-hidden !rounded-lg !border !border-white/10 !bg-[#171c25] [&>button]:!border-white/10 [&>button]:!fill-slate-200"
+                  className="!overflow-hidden !rounded-lg !border !border-ow-border !bg-ow-raised [&>button]:!border-ow-border [&>button]:!fill-ow-text"
                 />
 
                 <MiniMap
                   pannable
                   zoomable
                   nodeColor={(node) =>
-                    node.id === selectedNode?.id ? "#d9f99d" : "#a3e635"
+                    node.id === selectedNode?.id
+                      ? "var(--ow-accent-hover)"
+                      : "var(--ow-accent)"
                   }
-                  maskColor="rgba(5, 8, 12, 0.72)"
-                  className="!hidden !border !border-white/10 !bg-[#11151d] sm:!block"
+                  maskColor="var(--ow-minimap-mask, rgba(5, 8, 12, 0.72))"
+                  className="!hidden !border !border-ow-border !bg-ow-surface sm:!block"
                 />
 
                 <Panel position="top-right">
                   <button
                     type="button"
                     onClick={fitGraph}
-                    className="rounded-lg border border-white/10 bg-[#171c25]/95 px-3 py-2 text-xs font-medium text-slate-200 shadow-lg backdrop-blur hover:border-lime-400/50 hover:text-lime-300"
+                    className="rounded-lg border border-ow-border bg-ow-raised px-3 py-2 text-xs font-medium text-ow-text shadow-lg backdrop-blur hover:border-ow-accent/50 hover:text-ow-accent"
                   >
                     Fit to view
                   </button>
@@ -657,10 +674,10 @@ export default function GraphPage() {
               </ReactFlow>
 
               {(loading || layouting) && (
-                <div className="absolute inset-0 z-20 flex items-center justify-center bg-[#10141c]/75 backdrop-blur-[2px]">
-                  <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-[#171c25] px-4 py-3 shadow-xl">
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-lime-400/30 border-t-lime-400" />
-                    <span className="text-sm text-slate-300">
+                <div className="absolute inset-0 z-20 flex items-center justify-center bg-ow-surface/75 backdrop-blur-[2px]">
+                  <div className="flex items-center gap-3 rounded-xl border border-ow-border bg-ow-raised px-4 py-3 shadow-xl">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-ow-accent/30 border-t-ow-accent" />
+                    <span className="text-sm text-ow-muted">
                       {loading ? "Loading ontology..." : "Organizing graph..."}
                     </span>
                   </div>
@@ -669,14 +686,14 @@ export default function GraphPage() {
 
               {!loading && !error && !layouting && nodes.length === 0 && (
                 <div className="absolute inset-0 z-10 flex items-center justify-center px-5">
-                  <div className="max-w-sm rounded-2xl border border-white/10 bg-[#171c25] p-6 text-center shadow-xl">
-                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-lime-400/10 text-lime-300">
+                  <div className="max-w-sm rounded-2xl border border-ow-border bg-ow-raised p-6 text-center shadow-xl">
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-ow-accent/10 text-ow-accent">
                       <icon name="network" size="xl" />
                     </div>
 
                     <h3 className="mt-4 font-semibold">Your graph is empty</h3>
 
-                    <p className="mt-2 text-sm leading-6 text-slate-400">
+                    <p className="mt-2 text-sm leading-6 text-ow-muted">
                       Create typed entities using rdf:type assertions and
                       connect them with declared relationship types.
                     </p>
@@ -685,7 +702,7 @@ export default function GraphPage() {
               )}
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 px-4 py-3 text-xs text-slate-500 sm:px-5">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-ow-border px-4 py-3 text-xs text-ow-subtle sm:px-5">
               <span>
                 {layoutDirection === "RIGHT"
                   ? "Horizontal layout"
@@ -700,8 +717,8 @@ export default function GraphPage() {
 
           {/* Inspector */}
           <aside className="flex min-w-0 flex-col gap-5">
-            <section className="rounded-2xl border border-white/10 bg-[#11151d] p-5">
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-lime-400">
+            <section className="rounded-2xl border border-ow-border bg-ow-surface p-5">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-ow-accent">
                 Entity inspector
               </p>
 
@@ -711,23 +728,23 @@ export default function GraphPage() {
                     {selectedNode.data.label}
                   </h2>
 
-                  <span className="mt-2 inline-block max-w-full break-words rounded-full border border-lime-300/20 bg-lime-300/10 px-2.5 py-1 text-xs text-lime-300">
+                  <span className="mt-2 inline-block max-w-full break-words rounded-full border border-ow-accent/20 bg-ow-accent/10 px-2.5 py-1 text-xs text-ow-accent">
                     {selectedNode.data.entityType}
                   </span>
 
-                  <p className="mt-5 text-xs font-medium tracking-wider text-slate-500">
+                  <p className="mt-5 text-xs font-medium tracking-wider text-ow-subtle">
                     ENTITY REFERENCE
                   </p>
 
-                  <p className="mt-1 break-all font-mono text-xs leading-5 text-slate-300">
+                  <p className="mt-1 break-all font-mono text-xs leading-5 text-ow-muted">
                     {selectedNode.data.ref}
                   </p>
 
-                  <div className="my-5 border-t border-white/10" />
+                  <div className="my-5 border-t border-ow-border" />
 
                   <div className="flex items-center justify-between gap-3">
                     <h3 className="text-sm font-semibold">Connections</h3>
-                    <span className="text-xs tabular-nums text-slate-500">
+                    <span className="text-xs tabular-nums text-ow-subtle">
                       {selectedConnections.length}
                     </span>
                   </div>
@@ -742,21 +759,21 @@ export default function GraphPage() {
                           key={edge.id}
                           type="button"
                           onClick={() => focusEntity(otherId)}
-                          className="w-full rounded-xl border border-white/10 bg-black/10 p-3 text-left transition hover:border-lime-400/30 hover:bg-white/[0.03]"
+                          className="w-full rounded-xl border border-ow-border bg-ow-surface-muted p-3 text-left transition hover:border-ow-accent/30 hover:bg-ow-accent/5"
                         >
-                          <p className="text-[10px] font-semibold tracking-wider text-slate-500">
+                          <p className="text-[10px] font-semibold tracking-wider text-ow-subtle">
                             {outgoing ? "OUTGOING" : "INCOMING"}
                           </p>
 
-                          <p className="my-1 break-words text-sm font-semibold text-lime-300">
+                          <p className="my-1 break-words text-sm font-semibold text-ow-accent">
                             {String(edge.label ?? "relatedTo")}
                           </p>
 
-                          <p className="break-words text-sm text-slate-300">
+                          <p className="break-words text-sm text-ow-muted">
                             {nodeNameById.get(otherId) || otherId}
                           </p>
 
-                          <p className="mt-2 text-xs text-slate-500">
+                          <p className="mt-2 text-xs text-ow-subtle">
                             View connected entity →
                           </p>
                         </button>
@@ -764,51 +781,53 @@ export default function GraphPage() {
                     })}
 
                     {selectedConnections.length === 0 && (
-                      <p className="rounded-lg border border-dashed border-white/10 p-3 text-sm leading-6 text-slate-500">
+                      <p className="rounded-lg border border-dashed border-ow-border p-3 text-sm leading-6 text-ow-subtle">
                         No declared relationship connections for this entity.
                       </p>
                     )}
                   </div>
                 </>
               ) : (
-                <p className="mt-4 text-sm leading-6 text-slate-400">
+                <p className="mt-4 text-sm leading-6 text-ow-muted">
                   Select a node to inspect its type, reference, and incoming or
                   outgoing relationships.
                 </p>
               )}
             </section>
 
-            <section className="rounded-2xl border border-white/10 bg-[#11151d] p-5">
+            <section className="rounded-2xl border border-ow-border bg-ow-surface p-5">
               <h2 className="font-semibold">How to read the graph</h2>
 
-              <div className="mt-4 space-y-3 text-sm leading-6 text-slate-400">
+              <div className="mt-4 space-y-3 text-sm leading-6 text-ow-muted">
                 <p>
-                  <span className="font-semibold text-lime-300">Nodes</span>{" "}
+                  <span className="font-semibold text-ow-accent">Nodes</span>{" "}
                   represent entities identified by your assertions.
                 </p>
 
                 <p>
-                  <span className="font-semibold text-lime-300">Arrows</span>{" "}
+                  <span className="font-semibold text-ow-accent">Arrows</span>{" "}
                   represent assertions with predicates defined as relationship
                   types.
                 </p>
 
                 <p>
-                  <span className="font-semibold text-lime-300">Direction</span>{" "}
+                  <span className="font-semibold text-ow-accent">
+                    Direction
+                  </span>{" "}
                   follows the subject-to-object relationship.
                 </p>
 
                 <p>
-                  <span className="font-semibold text-lime-300">Layout</span> is
-                  recalculated when the ontology data or screen orientation
+                  <span className="font-semibold text-ow-accent">Layout</span>{" "}
+                  is recalculated when the ontology data or screen orientation
                   changes.
                 </p>
               </div>
             </section>
 
-            <div className="rounded-xl border border-white/10 bg-[#11151d] p-4">
+            <div className="rounded-xl border border-ow-border bg-ow-surface p-4">
               <p className="text-sm font-medium">Navigation tips</p>
-              <p className="mt-2 text-xs leading-5 text-slate-500">
+              <p className="mt-2 text-xs leading-5 text-ow-subtle">
                 Drag to reposition nodes, scroll or pinch to zoom, and use the
                 entity search to focus on a specific part of a large graph.
               </p>
@@ -817,7 +836,7 @@ export default function GraphPage() {
                 type="button"
                 onClick={fitGraph}
                 disabled={nodes.length === 0}
-                className="mt-4 w-full rounded-lg bg-lime-400 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-lime-300 disabled:opacity-50"
+                className="mt-4 w-full rounded-lg bg-ow-accent px-4 py-2.5 text-sm font-semibold text-[var(--ow-accent-contrast)] transition hover:bg-ow-accent-hover disabled:opacity-50"
               >
                 Reset graph view
               </button>
