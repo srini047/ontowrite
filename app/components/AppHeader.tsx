@@ -3,13 +3,22 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const links = [
-  { href: "/graph", label: "Knowledge Graph" },
-  { href: "/", label: "Dashboard" },
-];
+import { useEffect, useState } from "react";
+import { account } from "@/lib/appwrite";
+
+const graphLink = { href: "/graph", label: "Knowledge Graph" };
+const dashboardLink = { href: "/dashboard", label: "Dashboard" };
 
 export default function AppHeader() {
   const pathname = usePathname();
+  const [signedIn, setSignedIn] = useState(false);
+
+  useEffect(() => {
+    account
+      .get()
+      .then(() => setSignedIn(true))
+      .catch(() => setSignedIn(false));
+  }, []);
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0b0d10]/90 backdrop-blur-xl">
@@ -28,27 +37,46 @@ export default function AppHeader() {
           aria-label="Main navigation"
           className="flex items-center gap-1 sm:gap-2"
         >
-          {links.map((link) => {
-            const active =
-              link.href === "/"
-                ? pathname === "/"
-                : pathname.startsWith(link.href);
-
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                aria-current={active ? "page" : undefined}
-                className={`rounded-lg px-3 py-2 text-xs font-medium transition sm:px-4 sm:text-sm ${
-                  active
-                    ? "bg-lime-400/10 text-lime-300"
-                    : "text-slate-400 hover:bg-white/5 hover:text-white"
-                }`}
-              >
-                {link.label}
-              </Link>
-            );
-          })}
+          <Link
+            href={graphLink.href}
+            aria-current={
+              pathname.startsWith(graphLink.href) ? "page" : undefined
+            }
+            className={`rounded-lg px-3 py-2 text-xs font-medium transition sm:px-4 sm:text-sm ${
+              pathname.startsWith(graphLink.href)
+                ? "bg-lime-400/10 text-lime-300"
+                : "text-slate-400 hover:bg-white/5 hover:text-white"
+            }`}
+          >
+            {graphLink.label}
+          </Link>
+          {signedIn ? (
+            <Link
+              href={dashboardLink.href}
+              aria-current={
+                pathname.startsWith(dashboardLink.href) ? "page" : undefined
+              }
+              className={`rounded-lg px-3 py-2 text-xs font-medium transition sm:px-4 sm:text-sm ${
+                pathname.startsWith(dashboardLink.href)
+                  ? "bg-lime-400/10 text-lime-300"
+                  : "text-slate-400 hover:bg-white/5 hover:text-white"
+              }`}
+            >
+              {dashboardLink.label}
+            </Link>
+          ) : (
+            <Link
+              href="/auth"
+              aria-current={pathname === "/auth" ? "page" : undefined}
+              className={`rounded-lg px-3 py-2 text-xs font-medium transition sm:px-4 sm:text-sm ${
+                pathname === "/auth"
+                  ? "bg-lime-400/10 text-lime-300"
+                  : "text-slate-400 hover:bg-white/5 hover:text-white"
+              }`}
+            >
+              Sign In
+            </Link>
+          )}
         </nav>
       </div>
     </header>

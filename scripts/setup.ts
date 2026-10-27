@@ -85,6 +85,21 @@ const schema: {
       { key: "objectRef", type: "varchar", size: 255, required: true },
     ],
   },
+  {
+    id: "appwrite_connections",
+    name: "Appwrite Connections",
+    columns: [
+      { key: "ownerUserId", type: "varchar", size: 36, required: true },
+      { key: "appwriteUserId", type: "varchar", size: 36, required: true },
+      { key: "accessTokenEncrypted", type: "text", required: true },
+      { key: "refreshTokenEncrypted", type: "text", required: false },
+      { key: "tokenExpiresAt", type: "varchar", size: 40, required: false },
+      { key: "scopes", type: "text", required: true },
+      { key: "projects", type: "text", required: true },
+      { key: "createdAt", type: "varchar", size: 40, required: true },
+      { key: "updatedAt", type: "varchar", size: 40, required: true },
+    ],
+  },
 ];
 
 function errorCode(error: unknown): number | undefined {
