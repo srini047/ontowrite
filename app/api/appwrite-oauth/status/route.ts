@@ -15,7 +15,12 @@ export async function GET(request: NextRequest) {
 
   if (!connectionId) {
     return NextResponse.json(
-      { connected: false, projects: [], scopes: [] },
+      {
+        connected: false,
+        projects: [],
+        scopes: [],
+        selectedProjectId: null,
+      },
       { headers: { "Cache-Control": "no-store" } },
     );
   }
@@ -33,6 +38,14 @@ export async function GET(request: NextRequest) {
 
     const scopes = JSON.parse(String(row.scopes ?? "[]")) as string[];
 
+    const storedSelection = String(row.selectedProjectId ?? "");
+
+    const selectedProjectId = projects.some(
+      (project) => project.id === storedSelection,
+    )
+      ? storedSelection
+      : null;
+
     return NextResponse.json(
       {
         connected: true,
@@ -42,6 +55,7 @@ export async function GET(request: NextRequest) {
           ...(region ? { region } : {}),
         })),
         scopes,
+        selectedProjectId,
       },
       { headers: { "Cache-Control": "no-store" } },
     );

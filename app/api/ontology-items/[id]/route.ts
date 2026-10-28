@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { DATABASE_ID, tablesDB } from "@/lib/appwrite-server";
+import { getSelectedProjectTablesDB } from "@/lib/appwrite-project";
 import {
   isOntologyItemKind,
   ontologyTables,
@@ -37,8 +37,10 @@ export async function PATCH(request: Request, context: Context) {
       );
     }
 
+    const { tablesDB, databaseId } = await getSelectedProjectTablesDB();
+
     const row = await tablesDB.updateRow({
-      databaseId: DATABASE_ID,
+      databaseId: databaseId,
       tableId: ontologyTables[kind].tableId,
       rowId: id,
       data: validated.data,
@@ -67,8 +69,10 @@ export async function DELETE(request: Request, context: Context) {
       );
     }
 
+    const { tablesDB, databaseId } = await getSelectedProjectTablesDB();
+
     await tablesDB.deleteRow({
-      databaseId: DATABASE_ID,
+      databaseId: databaseId,
       tableId: ontologyTables[kind].tableId,
       rowId: id,
     });

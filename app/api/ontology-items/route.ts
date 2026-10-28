@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { ID } from "node-appwrite";
-import { DATABASE_ID, tablesDB } from "@/lib/appwrite-server";
+import { getSelectedProjectTablesDB } from "@/lib/appwrite-project";
 import {
   isOntologyItemKind,
   ontologyTables,
@@ -35,8 +35,10 @@ export async function POST(request: Request) {
       );
     }
 
+    const { tablesDB, databaseId } = await getSelectedProjectTablesDB();
+
     const row = await tablesDB.createRow({
-      databaseId: DATABASE_ID,
+      databaseId: databaseId,
       tableId: ontologyTables[kind].tableId,
       rowId: ID.unique(),
       data: validated.data,

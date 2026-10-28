@@ -1,5 +1,5 @@
 import { loadEnvConfig } from "@next/env";
-import { Client, TablesDB } from "node-appwrite";
+import { Client, TablesDB, Permission, Role } from "node-appwrite";
 
 loadEnvConfig(process.cwd());
 
@@ -91,6 +91,7 @@ const schema: {
     columns: [
       { key: "ownerUserId", type: "varchar", size: 36, required: true },
       { key: "appwriteUserId", type: "varchar", size: 36, required: true },
+      { key: "selectedProjectId", type: "varchar", size: 36, required: false },
       { key: "accessTokenEncrypted", type: "text", required: true },
       { key: "refreshTokenEncrypted", type: "text", required: false },
       { key: "tokenExpiresAt", type: "varchar", size: 40, required: false },
@@ -101,6 +102,12 @@ const schema: {
     ],
   },
 ];
+
+const publicReadTableIds = new Set(
+  schema
+    .filter((table) => table.id !== "appwrite_connections")
+    .map((table) => table.id),
+);
 
 function errorCode(error: unknown): number | undefined {
   return (error as { code?: number })?.code;
@@ -139,6 +146,17 @@ async function ensureTable(table: (typeof schema)[number]) {
     });
 
     console.log(`Created table: ${table.id}`);
+  }
+
+  if (publicReadTableIds.has(table.id)) {
+    await db.updateTable({
+      databaseId: DATABASE_ID,
+      tableId: table.id,
+      name: table.name,
+      permissions: [Permission.read(Role.any())],
+    });
+
+    console.log(`  Enabled public read: ${table.id}`);
   }
 
   const result = await db.listColumns({

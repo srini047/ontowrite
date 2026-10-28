@@ -18,6 +18,7 @@ type ConnectionStatus = {
   connected: boolean;
   projects: AuthorizedProject[];
   scopes: string[];
+  selectedProjectId?: string | null;
 };
 
 export default function DashboardPage() {
@@ -115,6 +116,37 @@ export default function DashboardPage() {
     } catch (error) {
       console.error("Sign out failed:", error);
       setSigningOut(false);
+    }
+  }
+
+  async function saveProjectSelection(projectId: string) {
+    setSelectedProjectId(projectId);
+
+    try {
+      const response = await fetch("/api/appwrite-oauth/select-project", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        cache: "no-store",
+        body: JSON.stringify({ projectId }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error ?? "Unable to save project selection.");
+      }
+
+      await loadConnection();
+    } catch (error) {
+      console.error("[OntoWrite] Project selection failed:", error);
+      setConnectionError(
+        error instanceof Error
+          ? error.message
+          : "Unable to save project selection.",
+      );
+      await loadConnection();
     }
   }
 
@@ -275,7 +307,7 @@ export default function DashboardPage() {
                             type="button"
                             aria-pressed={selected}
                             data-selected={selected}
-                            onClick={() => setSelectedProjectId(project.id)}
+                            onClick={() => void saveProjectSelection(project.id)}
                             className="ow-project"
                           >
                             <div className="flex items-start justify-between gap-3">
@@ -345,7 +377,7 @@ export default function DashboardPage() {
                         Review the scopes you authorized
                       </span>
                     </span>
-                    <span className="ow-accent-text shrink-0 text-sm">
+                    <span className="ow-accent-text shrink-0 text-sm cursor-pointer">
                       {showScopes ? "Hide −" : "Show +"}
                     </span>
                   </button>

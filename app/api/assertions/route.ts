@@ -1,15 +1,25 @@
+
 import { NextResponse } from "next/server";
 import { ID, Query } from "node-appwrite";
-import { DATABASE_ID, tablesDB } from "@/lib/appwrite-server";
+import { getSelectedProjectTablesDB } from "@/lib/appwrite-project";
 
 type Row = {
   $id: string;
   [key: string]: unknown;
 };
 
-async function listRows(tableId: string, queries: string[] = []) {
-  const result = await tablesDB.listRows({
-    databaseId: DATABASE_ID,
+type TablesDBClient = Awaited<
+  ReturnType<typeof getSelectedProjectTablesDB>
+>["tablesDB"];
+
+async function listRows(
+  db: TablesDBClient,
+  databaseId: string,
+  tableId: string,
+  queries: string[] = [],
+) {
+  const result = await db.listRows({
+    databaseId,
     tableId,
     queries,
   });
@@ -18,6 +28,8 @@ async function listRows(tableId: string, queries: string[] = []) {
 }
 
 async function listAllRows(
+  db: TablesDBClient,
+  databaseId: string,
   tableId: string,
   baseQueries: string[] = [],
 ): Promise<Row[]> {
@@ -31,8 +43,8 @@ async function listAllRows(
       queries.push(Query.cursorAfter(cursor));
     }
 
-    const page = await tablesDB.listRows({
-      databaseId: DATABASE_ID,
+    const page = await db.listRows({
+      databaseId,
       tableId,
       queries,
       total: false,
@@ -117,11 +129,22 @@ export async function POST(request: Request) {
       );
     }
 
+    const { tablesDB, databaseId } = await getSelectedProjectTablesDB();
+
     const [ontologies, classes, relationships, assertions] = await Promise.all([
-      listRows("ontologies", [Query.equal("$id", ontologyId), Query.limit(1)]),
-      listRows("ontology_classes", [Query.equal("ontologyId", ontologyId)]),
-      listRows("relationship_types", [Query.equal("ontologyId", ontologyId)]),
-      listAllRows("assertions", [Query.equal("ontologyId", ontologyId)]),
+      listRows(tablesDB, databaseId, "ontologies", [
+        Query.equal("$id", ontologyId),
+        Query.limit(1),
+      ]),
+      listRows(tablesDB, databaseId, "ontology_classes", [
+        Query.equal("ontologyId", ontologyId),
+      ]),
+      listRows(tablesDB, databaseId, "relationship_types", [
+        Query.equal("ontologyId", ontologyId),
+      ]),
+      listAllRows(tablesDB, databaseId, "assertions", [
+        Query.equal("ontologyId", ontologyId),
+      ]),
     ]);
 
     if (!ontologies.length) {
@@ -178,13 +201,15 @@ export async function POST(request: Request) {
         }
 
         if (text(subjectClass, "$id") !== text(relationship, "sourceClassId")) {
+          const expectedClass = classes.find(
+            (row) =>
+              text(row, "$id") === text(relationship, "sourceClassId"),
+          );
+
           return NextResponse.json(
             {
               error: `${predicate} expects a subject of class "${text(
-                classes.find(
-                  (row) =>
-                    text(row, "$id") === text(relationship, "sourceClassId"),
-                ) ?? { $id: "", name: "unknown" },
+                expectedClass ?? { $id: "", name: "unknown" },
                 "name",
               )}".`,
             },
@@ -194,7 +219,8 @@ export async function POST(request: Request) {
 
         if (text(objectClass, "$id") !== text(relationship, "targetClassId")) {
           const expectedClass = classes.find(
-            (row) => text(row, "$id") === text(relationship, "targetClassId"),
+            (row) =>
+              text(row, "$id") === text(relationship, "targetClassId"),
           );
 
           return NextResponse.json(
@@ -211,7 +237,7 @@ export async function POST(request: Request) {
     }
 
     const created = await tablesDB.createRow({
-      databaseId: DATABASE_ID,
+      databaseId,
       tableId: "assertions",
       rowId: ID.unique(),
       data: {
@@ -224,7 +250,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ assertion: created }, { status: 201 });
   } catch (error) {
-    console.error("Create assertion failed:", error);
+    console.error(
+      "[OntoWrite] Create assertion failed:",
+      error instanceof Error ? error.message : "Unknown error",
+    );
 
     return NextResponse.json(
       { error: "Could not create assertion." },
