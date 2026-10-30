@@ -98,10 +98,44 @@ export async function GET() {
       assertions,
     });
   } catch (error) {
-    console.error(
-      "[OntoWrite] Failed to load ontology data for the selected project.",
-      error,
-    );
+    const message = error instanceof Error ? error.message : "UNKNOWN_ERROR";
+
+    if (message === "APPWRITE_CONNECTION_REQUIRED") {
+      return NextResponse.json(
+        {
+          error: "Connect your Appwrite account to access ontology data.",
+          code: message,
+        },
+        { status: 401 },
+      );
+    }
+
+    if (
+      message === "APPWRITE_PROJECT_NOT_SELECTED" ||
+      message === "APPWRITE_SELECTED_PROJECT_INVALID"
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Select a valid Appwrite project before accessing ontology data.",
+          code: message,
+        },
+        { status: 409 },
+      );
+    }
+
+    if (
+      message === "APPWRITE_REAUTHORIZATION_REQUIRED" ||
+      message === "APPWRITE_TOKEN_REFRESH_FAILED"
+    ) {
+      return NextResponse.json(
+        {
+          error: "Your Appwrite connection needs to be renewed.",
+          code: message,
+        },
+        { status: 401 },
+      );
+    }
 
     return NextResponse.json(
       { error: "Failed to load ontology data for the selected project." },

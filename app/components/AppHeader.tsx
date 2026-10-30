@@ -8,6 +8,7 @@ import { account } from "@/lib/appwrite";
 
 const graphLink = { href: "/graph", label: "Knowledge Graph" };
 const dashboardLink = { href: "/dashboard", label: "Dashboard" };
+const editorLink = { href: "/editor", label: "Editor" };
 
 export default function AppHeader() {
   const pathname = usePathname();
@@ -50,6 +51,21 @@ export default function AppHeader() {
           >
             {graphLink.label}
           </Link>
+          {signedIn && (
+            <Link
+              href={editorLink.href}
+              aria-current={
+                pathname.startsWith(editorLink.href) ? "page" : undefined
+              }
+              className={`rounded-lg px-3 py-2 text-xs font-medium transition sm:px-4 sm:text-sm ${
+                pathname.startsWith(editorLink.href)
+                  ? "bg-lime-400/10 text-lime-300"
+                  : "text-slate-400 hover:bg-white/5 hover:text-white"
+              }`}
+            >
+              {editorLink.label}
+            </Link>
+          )}
           {signedIn ? (
             <Link
               href={dashboardLink.href}

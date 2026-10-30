@@ -31,6 +31,7 @@ export default function DashboardPage() {
   const [connectionError, setConnectionError] = useState("");
 
   const [selectedProjectId, setSelectedProjectId] = useState("");
+  const [savingProjectId, setSavingProjectId] = useState("");
   const [showScopes, setShowScopes] = useState(false);
 
   const loadConnection = useCallback(async () => {
@@ -57,13 +58,10 @@ export default function DashboardPage() {
       }
 
       setConnection(data);
-      setSelectedProjectId((current) =>
-        data.projects.some((project) => project.id === current)
-          ? current
-          : (data.projects[0]?.id ?? ""),
-      );
+      setSelectedProjectId(data.selectedProjectId ?? "");
     } catch (error) {
       console.error("[OntoWrite] Connection status failed:", error);
+
       setConnectionError(
         error instanceof Error
           ? error.message
@@ -88,10 +86,14 @@ export default function DashboardPage() {
         }
       })
       .catch(() => {
-        if (active) window.location.assign("/auth");
+        if (active) {
+          window.location.assign("/auth");
+        }
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       });
 
     return () => {
@@ -114,13 +116,18 @@ export default function DashboardPage() {
       await account.deleteSession({ sessionId: "current" });
       window.location.assign("/auth");
     } catch (error) {
-      console.error("Sign out failed:", error);
+      console.error("[OntoWrite] Sign out failed:", error);
       setSigningOut(false);
     }
   }
 
   async function saveProjectSelection(projectId: string) {
-    setSelectedProjectId(projectId);
+    if (savingProjectId || projectId === selectedProjectId) {
+      return;
+    }
+
+    setSavingProjectId(projectId);
+    setConnectionError("");
 
     try {
       const response = await fetch("/api/appwrite-oauth/select-project", {
@@ -138,15 +145,30 @@ export default function DashboardPage() {
         throw new Error(result.error ?? "Unable to save project selection.");
       }
 
-      await loadConnection();
+      if (result.selectedProjectId !== projectId) {
+        throw new Error("The server did not confirm the requested project.");
+      }
+
+      setSelectedProjectId(result.selectedProjectId);
+
+      setConnection((current) =>
+        current
+          ? {
+              ...current,
+              selectedProjectId: result.selectedProjectId,
+            }
+          : current,
+      );
     } catch (error) {
       console.error("[OntoWrite] Project selection failed:", error);
+
       setConnectionError(
         error instanceof Error
           ? error.message
           : "Unable to save project selection.",
       );
-      await loadConnection();
+    } finally {
+      setSavingProjectId("");
     }
   }
 
@@ -160,9 +182,7 @@ export default function DashboardPage() {
     );
   }
 
-  const selectedProject = connection?.projects.find(
-    (project) => project.id === selectedProjectId,
-  );
+  const isSingleProject = connection?.projects.length === 1;
 
   return (
     <main className="ow-page">
@@ -170,9 +190,11 @@ export default function DashboardPage() {
         <header className="mb-8 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
           <div className="min-w-0">
             <p className="ow-eyebrow">Your workspace</p>
+
             <h1 className="mt-3 break-words text-3xl font-semibold tracking-tight sm:text-4xl">
               Welcome, {user.name || user.email}
             </h1>
+
             <p className="ow-muted mt-3 max-w-2xl text-sm leading-6 sm:text-base">
               Manage your Appwrite connection and choose the project you want to
               work with in OntoWrite.
@@ -181,13 +203,16 @@ export default function DashboardPage() {
 
           <div className="flex flex-wrap gap-2">
             <button
+              type="button"
               onClick={() => void loadConnection()}
-              disabled={connectionLoading}
+              disabled={connectionLoading || Boolean(savingProjectId)}
               className="ow-button"
             >
               {connectionLoading ? "Refreshing..." : "Refresh"}
             </button>
+
             <button
+              type="button"
               onClick={signOut}
               disabled={signingOut}
               className="ow-button"
@@ -203,8 +228,11 @@ export default function DashboardPage() {
             className="ow-alert-error mb-6 flex flex-col justify-between gap-3 p-4 sm:flex-row sm:items-center"
           >
             <p className="break-words text-sm">{connectionError}</p>
+
             <button
+              type="button"
               onClick={() => void loadConnection()}
+              disabled={connectionLoading || Boolean(savingProjectId)}
               className="ow-button w-fit"
             >
               Try again
@@ -216,9 +244,11 @@ export default function DashboardPage() {
           <div className="flex flex-col gap-4 border-b border-[var(--ow-border)] p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
             <div>
               <p className="ow-eyebrow">Integration</p>
+
               <h2 className="mt-2 text-xl font-semibold">
                 Appwrite connection
               </h2>
+
               <p className="ow-muted mt-1 text-sm">
                 Projects and permissions granted to OntoWrite.
               </p>
@@ -239,6 +269,7 @@ export default function DashboardPage() {
               <div className="space-y-3 py-4" role="status">
                 <div className="h-4 w-40 animate-pulse rounded bg-[var(--ow-surface-raised)]" />
                 <div className="h-20 animate-pulse rounded-xl bg-[var(--ow-surface-muted)]" />
+
                 <p className="ow-muted text-sm">
                   Loading connection details...
                 </p>
@@ -248,10 +279,12 @@ export default function DashboardPage() {
                 <h3 className="text-lg font-semibold">
                   Connect your Appwrite account
                 </h3>
+
                 <p className="ow-muted mx-auto mt-2 max-w-md text-sm leading-6">
                   Authorize OntoWrite to discover your projects and work with
                   ontology resources on your behalf.
                 </p>
+
                 <a
                   href="/api/appwrite-oauth/start"
                   className="ow-button ow-button-primary mt-5"
@@ -264,12 +297,15 @@ export default function DashboardPage() {
                 <div className="grid grid-cols-2 gap-3 sm:gap-4">
                   <div className="ow-card-muted p-4 sm:p-5">
                     <p className="ow-muted text-sm">Authorized projects</p>
+
                     <p className="mt-2 text-3xl font-semibold">
                       {connection.projects.length}
                     </p>
                   </div>
+
                   <div className="ow-card-muted p-4 sm:p-5">
                     <p className="ow-muted text-sm">Granted permissions</p>
+
                     <p className="mt-2 text-3xl font-semibold">
                       {connection.scopes.length}
                     </p>
@@ -280,12 +316,14 @@ export default function DashboardPage() {
                   <div className="flex flex-wrap items-end justify-between gap-2">
                     <div>
                       <h3 className="text-lg font-semibold">
-                        Choose a project
+                        Your Appwrite projects
                       </h3>
+
                       <p className="ow-muted mt-1 text-sm">
-                        Select the Appwrite project you intend to use.
+                        Choose which project OntoWrite should use.
                       </p>
                     </div>
+
                     <span className="ow-muted text-xs">
                       {connection.projects.length} available
                     </span>
@@ -300,63 +338,91 @@ export default function DashboardPage() {
                     <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
                       {connection.projects.map((project) => {
                         const selected = selectedProjectId === project.id;
+                        const saving = savingProjectId === project.id;
+
+                        const displayName =
+                          project.name && project.name !== project.id
+                            ? project.name
+                            : "Appwrite project";
 
                         return (
-                          <button
+                          <label
                             key={project.id}
-                            type="button"
-                            aria-pressed={selected}
-                            data-selected={selected}
-                            onClick={() => void saveProjectSelection(project.id)}
-                            className="ow-project"
+                            className={`ow-project relative flex cursor-pointer flex-col transition ${
+                              selected
+                                ? "border-[var(--ow-accent)] bg-[var(--ow-accent-soft)]"
+                                : ""
+                            } ${
+                              savingProjectId
+                                ? "pointer-events-none opacity-70"
+                                : ""
+                            }`}
                           >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <p className="break-words font-semibold">
-                                  {project.name || "Untitled project"}
-                                </p>
+                            <div className="flex items-start gap-3">
+                              <input
+                                type={isSingleProject ? "checkbox" : "radio"}
+                                name={
+                                  isSingleProject
+                                    ? undefined
+                                    : "activeAppwriteProject"
+                                }
+                                checked={selected}
+                                disabled={Boolean(savingProjectId) || selected}
+                                onChange={() =>
+                                  void saveProjectSelection(project.id)
+                                }
+                                className="mt-1 h-4 w-4 shrink-0 accent-lime-400"
+                              />
+
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <p className="wrap-break-word font-semibold">
+                                    {displayName}
+                                  </p>
+
+                                  {selected && (
+                                    <span className="ow-status shrink-0">
+                                      <span className="ow-status-dot" />
+                                      Active
+                                    </span>
+                                  )}
+                                </div>
+
                                 <p className="ow-muted mt-2 break-all font-mono text-xs leading-5">
                                   {project.id}
                                 </p>
-                              </div>
-                              <span
-                                aria-hidden="true"
-                                className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border text-xs ${
-                                  selected
-                                    ? "border-[var(--ow-accent)] bg-[var(--ow-accent)] text-[var(--ow-accent-contrast)]"
-                                    : "border-[var(--ow-border)] text-transparent"
-                                }`}
-                              >
-                                ✓
-                              </span>
-                            </div>
 
-                            <div className="ow-muted mt-4 flex justify-between gap-3 border-t border-[var(--ow-border-subtle)] pt-3 text-xs">
-                              <span>Region</span>
-                              <span className="text-[var(--ow-text)]">
-                                {project.region || "Not available"}
-                              </span>
+                                <div className="ow-muted mt-4 flex justify-between gap-3 border-t border-[var(--ow-border)] pt-3 text-xs">
+                                  <span>Region</span>
+
+                                  <span className="text-[var(--ow-text)]">
+                                    {project.region || "Not available"}
+                                  </span>
+                                </div>
+
+                                {saving && (
+                                  <p className="mt-3 text-xs font-medium">
+                                    Saving selection...
+                                  </p>
+                                )}
+
+                                {!selected && !saving && (
+                                  <p className="mt-3 text-xs font-medium">
+                                    Select this project
+                                  </p>
+                                )}
+                              </div>
                             </div>
-                          </button>
+                          </label>
                         );
                       })}
                     </div>
                   )}
 
-                  {selectedProject && (
-                    <div className="mt-4 rounded-lg border border-[var(--ow-accent-border)] bg-[var(--ow-accent-soft)] p-4">
-                      <p className="ow-eyebrow">Current selection</p>
-                      <p className="mt-2 break-words font-semibold">
-                        {selectedProject.name}
-                      </p>
-                      <p className="ow-muted mt-1 break-all font-mono text-xs">
-                        {selectedProject.id}
-                      </p>
-                      <p className="ow-muted mt-3 text-xs leading-5">
-                        This selection is currently local to this page. It
-                        hasn't been saved or applied to ontology operations yet.
-                      </p>
-                    </div>
+                  {!selectedProjectId && connection.projects.length > 0 && (
+                    <p className="ow-muted mt-4 rounded-lg border border-dashed border-[var(--ow-border)] p-4 text-sm">
+                      Select a project to make it active in OntoWrite.
+                    </p>
                   )}
                 </section>
 
@@ -373,11 +439,13 @@ export default function DashboardPage() {
                       <span className="block font-semibold">
                         Granted permissions
                       </span>
+
                       <span className="ow-muted mt-1 block text-sm">
                         Review the scopes you authorized
                       </span>
                     </span>
-                    <span className="ow-accent-text shrink-0 text-sm cursor-pointer">
+
+                    <span className="ow-accent-text shrink-0 text-sm">
                       {showScopes ? "Hide −" : "Show +"}
                     </span>
                   </button>
@@ -389,6 +457,7 @@ export default function DashboardPage() {
                           {scope}
                         </li>
                       ))}
+
                       {connection.scopes.length === 0 && (
                         <li className="ow-muted text-sm">
                           No scope details are available.
@@ -404,6 +473,7 @@ export default function DashboardPage() {
                   <p className="ow-muted text-sm leading-6">
                     Need to update your authorization?
                   </p>
+
                   <a
                     href="/api/appwrite-oauth/start"
                     className="ow-button ow-button-primary w-full sm:w-auto"
